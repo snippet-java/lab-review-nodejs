@@ -73,6 +73,10 @@ function updateMessage(input, response) {
   if (!response.output) {
     response.output = {};
   } else {
+  	// Check if the intent returned from Conversation service is add or multiply, perform the calculation and update the response
+	if (response.intents.length > 0 && (response.intents[0].intent === 'add' || response.intents[0].intent === 'multiply')) {
+		response = getCalculationResult(response);
+	}
     return response;
   }
   if (response.intents && response.intents[0]) {
@@ -93,5 +97,35 @@ function updateMessage(input, response) {
   response.output.text = responseText;
   return response;
 }
+
+function getCalculationResult(response){
+	//An array holding the operands
+	var numbersArr = [];
+	
+	//Fill the content of the array with the entities of type 'sys-number' 
+	for (var i = 0; i < response.entities.length; i++) {
+		if (response.entities[i].entity === 'sys-number') {
+			numbersArr.push(response.entities[i].value);
+		}
+	}
+	
+	// In case the user intent is add, perform the addition
+      // In case the intent is multiply, perform the multiplication
+	var result = 0;
+	if (response.intents[0].intent === 'add') {
+		result = parseInt(numbersArr[0]) + parseInt(numbersArr[1]);
+	} else if (response.intents[0].intent === 'multiply') {
+		result = parseInt(numbersArr[0]) * parseInt(numbersArr[1]);
+	}
+
+	// Replace _result_ in Conversation Service response, with the ac-tual calculated result
+	var output = response.output.text[0];
+	output = output.replace('_result_', result);
+	response.output.text[0] = output;
+	
+	// Return the updated response text based on the calculation
+	return response;
+}
+
 
 module.exports = app;
